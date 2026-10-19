@@ -56,6 +56,7 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 - Prompt: `01-agent-prompt.md`
 - Language en-US (the only English option; the prompt forces British English, same as Poppy)
 - Max call 900s, patience medium, idle reminders on at 8s
+- Outbound call disclosures: **OFF**. James's instruction, 19 Oct 2026: every client has signed consent to AI review calls, and the agent only ever calls clients who are expecting it. No AI or recording notice in the opening. If GoHighLevel adds its own outbound disclosure or consent setting, turn it off in the UI.
 - Working hours: Mon-Fri 09:00-17:00 Europe/London
 - Save call summary as note: on
 - Post-call email: Adviser + reviews@enver-prototype.example
