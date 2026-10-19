@@ -20,7 +20,7 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 | Review Date | Date | Workflow B, the day the call happens |
 | Next Review Date | Date | Workflow C (Review Date + 1 year) |
 | Review Attempts | Number | Workflow A (+1 each call) |
-| Review Outcome | Single option: COMPLETED, PARTIAL, HANDOVER, CALLBACK_REQUESTED, DECLINED, SECURITY_FAILED, WRONG_PERSON, WRONG_NUMBER, NO_ANSWER | Agent |
+| Review Outcome | Single option: COMPLETED, REBOOK, PARTIAL, HANDOVER, CALLBACK_REQUESTED, DECLINED, SECURITY_FAILED, WRONG_PERSON, WRONG_NUMBER, NO_ANSWER | Agent |
 | Review Flags | Text | Agent (SENSITIVE, ANSWERS NOT CONFIRMED, ADVICE REQUESTED, COMPLAINT) |
 | Review Summary | Large text | Agent |
 | Q1 Contact Details Changed | Large text | Agent |
@@ -50,7 +50,7 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 
 ## 3. Calendars
 1. **Annual Review Calls** (the agent's calendar). One event per client at their review slot. Weekdays 09:00-17:00 only, 15-minute slots. Synced to Outlook (connect Enver's Outlook under Settings > Calendars > Connections when real).
-2. **Review Callback** (the booking link). Human callback calls, 20 minutes, weekdays 09:00-17:00. This link goes in the agent's Send Booking Link SMS.
+2. **Review Callback** (the booking link). Human callback calls, 20 minutes, weekdays 09:00-17:00. This link goes in the post-call email (never SMS).
 
 ## 4. Voice AI agent: "Ava - Enver Reviews"
 - Prompt: `01-agent-prompt.md`
@@ -64,8 +64,8 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 - Actions:
   - In-call data extraction: Review Outcome, Review Flags, Answers Confirmed, Q1-Q10
   - Post-call data extraction: Review Summary
-  - SMS: Send Booking Link (Review Callback calendar link)
-  - Call transfer: OFF for the prototype (could be Handover to an adviser later)
+  - No SMS actions. All links go by email from Workflow B
+  - Call transfer: OFF for the prototype. OPTION for later: in hours, if an adviser is free, transfer "wants a person" calls live; otherwise email the booking link
 
 ## 5. Workflows (built in the GoHighLevel UI; the API can't create workflows)
 
@@ -84,7 +84,8 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 - If/Else on Review Outcome:
   - COMPLETED → stage **Review Done - Awaiting Check**, internal notification to the adviser
   - HANDOVER / PARTIAL / SECURITY_FAILED → stage **Handover to Management**, task for the adviser "Call client - see Review Summary", URGENT if Flags contain SENSITIVE
-  - CALLBACK_REQUESTED → stage **Callback Booked**
+  - REBOOK → stage **Review Scheduled**, email the Annual Review Calls booking link
+  - CALLBACK_REQUESTED → stage **Callback Booked**, email the Review Callback booking link
   - DECLINED / WRONG_NUMBER → stage **Declined Review**
   - NO_ANSWER / WRONG_PERSON:
     - Attempts < 3 → stage **No Answer - Retrying**, wait 1 working day, rebook a new Annual Review Calls slot at a different time of day (morning ↔ afternoon) → loops to Workflow A
@@ -98,5 +99,22 @@ Everything here is fake prototype data. Nothing touches Clear View, Poppy or any
 - Reset: Review Attempts = 0, clear Review Outcome, Flags and Q1-Q10 (this year's answers stay in the note and email)
 - Update opportunity: back to **Review Scheduled**
 
-## 6. Fake test clients
+### Workflow D: "Booking confirmation and reminders" (email only, no SMS)
+- Trigger: Appointment booked on Annual Review Calls
+- Email: booking confirmation (date, time, "we'll call you on the number we hold", reschedule link)
+- Wait until 7 days before → reminder email; 1 day before → reminder email
+- Skip reminders if the appointment is cancelled or rescheduled
+
+### Workflow E: "Email replies monitored"
+- Trigger: Customer replied (email channel)
+- Internal notification + task for the team to read the reply
+- If the reply mentions cancel / reschedule / can't make it → stage **Callback Booked** and pause Workflow A for that contact until a person checks
+
+## 6. Email sending
+- Dedicated sending domain on LC Email (e.g. reviews.enver-domain), with SPF, DKIM and DMARC set up
+- Warm the domain up gradually before full volume
+- Daily volume: confirm the actual limit on Enver's GoHighLevel plan (James's working figure is 1,500/day, which covers 100 calls/day with confirmations and two reminders each)
+- Replies go to a monitored inbox (see Workflow E)
+
+## 7. Fake test clients
 See `03-fake-clients.csv`. Phones use Ofcom's reserved drama range (07700 900xxx), so they can never ring a real person. Swap one for your own mobile to test a live call.
